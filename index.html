@@ -31,3 +31,313 @@ html,body{height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSys
 .col-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .col-name{font-size:.75rem;font-weight:600;flex:1}
 .col-cnt{font-size:.7rem;background:var(--border);color:var(--muted);border-radius:10px;padding:1px 6px}
+.col-body{padding:.625rem;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:.5rem}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.75rem}
+.card-name{font-size:.825rem;font-weight:600;margin-bottom:.2rem}
+.card-num{font-size:.7rem;color:var(--muted);margin-bottom:.4rem}
+.card-snippet{font-size:.72rem;color:var(--muted);font-style:italic;margin-bottom:.35rem;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.card-time{font-size:.68rem;color:var(--muted);margin-bottom:.5rem}
+.card-btns{display:flex;gap:.3rem;flex-wrap:wrap}
+.btn{border:none;border-radius:6px;padding:.32rem .6rem;font-size:.73rem;font-weight:500;cursor:pointer;transition:opacity .15s;line-height:1.4}
+.btn:hover{opacity:.8}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-ghost{background:#f1f5f9;color:var(--text);border:1px solid var(--border)}
+.btn-danger{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
+.btn-lg{font-size:.875rem;padding:.5rem 1.1rem;border-radius:8px}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem}
+.modal{background:var(--surface);border-radius:14px;padding:1.5rem;width:100%;max-width:380px;max-height:90dvh;overflow-y:auto}
+.modal h2{font-size:1rem;font-weight:700;margin-bottom:1rem}
+.field{margin-bottom:.875rem}
+.field label{display:block;font-size:.78rem;font-weight:600;margin-bottom:.35rem}
+.field input,.field textarea{
+  width:100%;border:1px solid var(--border);border-radius:7px;
+  padding:.55rem .75rem;font-size:.875rem;font-family:inherit;outline:none;
+  background:var(--surface);color:var(--text)
+}
+.field input:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.modal-btns{display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem}
+.item{max-width:480px;margin:0 auto;padding:1rem}
+.item-back{color:var(--muted);font-size:.8rem;text-decoration:none;display:inline-flex;align-items:center;gap:.25rem;margin-bottom:.875rem}
+.card-block{background:var(--surface);border-radius:12px;padding:1.125rem;border:1px solid var(--border);margin-bottom:.875rem}
+.block-lbl{font-size:.7rem;font-weight:700;color:var(--muted);letter-spacing:.06em;margin-bottom:.65rem}
+.tl{display:flex;flex-direction:column}
+.tl-row{display:flex;align-items:stretch;gap:.625rem}
+.tl-track{display:flex;flex-direction:column;align-items:center;width:22px;flex-shrink:0}
+.tl-dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;color:var(--muted);flex-shrink:0}
+.tl-dot.done{background:#10b981;border-color:#10b981;color:#fff}
+.tl-line{width:2px;flex:1;background:var(--border);min-height:18px}
+.tl-line.done{background:#10b981}
+.tl-lbl{font-size:.825rem;padding:.05rem 0 1rem;color:var(--muted)}
+.tl-lbl.curr{color:var(--text);font-weight:600}
+.note-item{border-top:1px solid var(--border);padding:.6rem 0}
+.note-item:first-child{border-top:none;padding-top:0}
+.note-txt{font-size:.82rem;margin-bottom:.2rem}
+.note-txt.sys{color:var(--muted);font-style:italic;font-size:.77rem}
+.note-time{font-size:.68rem;color:var(--muted)}
+.empty-col{text-align:center;padding:1.5rem .5rem;color:var(--muted);font-size:.75rem}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme=light]){--bg:#0f172a;--surface:#1e293b;--border:#334155;--text:#f1f5f9;--muted:#94a3b8}
+  .col{background:#172033}
+  .card-block{background:#172033}
+  .btn-ghost{background:#1e293b}
+  .btn-danger{background:#2d1515;color:#fca5a5;border-color:#7f1d1d}
+}
+@media print{
+  .overlay{position:static;background:none;display:block;padding:0}
+  .modal{box-shadow:none;border:none}
+  .modal-btns{display:none}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const STAGES=[
+  {id:'planerat',     label:'Planerat',          color:'#64748b'},
+  {id:'material',     label:'Material uttaget',  color:'#f59e0b'},
+  {id:'montering',    label:'Montering',         color:'#8b5cf6'},
+  {id:'test',         label:'Test',              color:'#0ea5e9'},
+  {id:'packning',     label:'Packning',          color:'#f97316'},
+  {id:'klar',         label:'Klar för leverans', color:'#10b981'},
+];
+const DB='ptavla_v1';
+function load(){try{return JSON.parse(localStorage.getItem(DB)||'[]')}catch{return[]}}
+function save(d){try{localStorage.setItem(DB,JSON.stringify(d))}catch{}}
+function uid(){return Math.random().toString(36).slice(2,8).toUpperCase()}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function fmt(ts){const d=new Date(ts);return d.toLocaleDateString('sv-SE')+' '+d.toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit'})}
+function qrUrl(id){return location.origin+location.pathname+'?id='+id}
+
+const PARAM=new URLSearchParams(location.search).get('id');
+let state={orders:load(),modal:null,qrId:null,addForm:{name:'',num:''}};
+
+function render(){
+  const root=document.getElementById('root');
+  if(PARAM){
+    root.innerHTML=buildItem(PARAM);
+    bindItem(PARAM);
+  } else {
+    root.innerHTML=buildBoard();
+    bindBoard();
+    if(state.modal==='qr'&&state.qrId) setTimeout(()=>genQR(state.qrId),50);
+  }
+}
+
+// ── BOARD ──────────────────────────────────────────────
+
+function buildBoard(){
+  const cols=STAGES.map(st=>{
+    const cards=state.orders.filter(o=>o.stage===st.id);
+    return`<div class="col">
+      <div class="col-hdr">
+        <span class="col-dot" style="background:${st.color}"></span>
+        <span class="col-name">${esc(st.label)}</span>
+        <span class="col-cnt">${cards.length}</span>
+      </div>
+      <div class="col-body">
+        ${cards.length?cards.map(c=>buildCard(c)).join(''):'<div class="empty-col">Inga ordrar</div>'}
+      </div>
+    </div>`;
+  }).join('');
+
+  let modal='';
+  if(state.modal==='add') modal=buildAddModal();
+  if(state.modal==='qr'&&state.qrId){
+    const o=state.orders.find(x=>x.id===state.qrId);
+    if(o) modal=buildQRModal(o);
+  }
+
+  return`<div class="hdr">
+    <span class="hdr-title">📋 Planeringstavla</span>
+    <button class="btn btn-primary" id="btn-add">+ Ny order</button>
+  </div>
+  <div class="board">${cols}</div>
+  ${modal}`;
+}
+
+function buildCard(o){
+  const si=STAGES.findIndex(s=>s.id===o.stage);
+  const lastNote=o.notes&&o.notes.filter(n=>!n.sys).slice(-1)[0];
+  return`<div class="card">
+    <div class="card-name">${esc(o.name)}</div>
+    <div class="card-num">#${esc(o.num)}</div>
+    ${lastNote?`<div class="card-snippet">${esc(lastNote.text)}</div>`:''}
+    <div class="card-time">${fmt(o.upd||o.ts)}</div>
+    <div class="card-btns">
+      ${si>0?`<button class="btn btn-ghost card-prev" data-id="${o.id}">←</button>`:''}
+      ${si<STAGES.length-1?`<button class="btn btn-primary card-next" data-id="${o.id}">→</button>`:''}
+      <button class="btn btn-ghost card-qr" data-id="${o.id}">QR</button>
+      <button class="btn btn-danger card-del" data-id="${o.id}">×</button>
+    </div>
+  </div>`;
+}
+
+function buildAddModal(){
+  return`<div class="overlay" id="ov">
+    <div class="modal">
+      <h2>Ny order</h2>
+      <div class="field"><label>Ordernamn</label><input id="fn" placeholder="t.ex. Styrenhet Alpha" autofocus></div>
+      <div class="field"><label>Ordernummer</label><input id="fnum" placeholder="t.ex. ORD-1234"></div>
+      <div class="modal-btns">
+        <button class="btn btn-ghost" id="mc">Avbryt</button>
+        <button class="btn btn-primary" id="ms">Skapa</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildQRModal(o){
+  return`<div class="overlay" id="ov">
+    <div class="modal" style="text-align:center">
+      <h2>${esc(o.name)}</h2>
+      <p style="font-size:.8rem;color:var(--muted);margin-bottom:1rem">#${esc(o.num)}</p>
+      <div id="qrc" style="margin-bottom:.75rem;min-height:180px;display:flex;justify-content:center"></div>
+      <div style="font-size:.62rem;color:var(--muted);word-break:break-all;margin-bottom:1rem">${esc(qrUrl(o.id))}</div>
+      <div class="modal-btns" style="justify-content:center">
+        <button class="btn btn-ghost" id="mc">Stäng</button>
+        <button class="btn btn-primary" onclick="window.print()">Skriv ut</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function genQR(id){
+  const el=document.getElementById('qrc');
+  if(!el) return;
+  new QRCode(el,{text:qrUrl(id),width:180,height:180,colorDark:'#000000',colorLight:'#ffffff'});
+}
+
+function bindBoard(){
+  q('#btn-add',el=>el.onclick=()=>{state.modal='add';render()});
+  q('#ov',el=>el.onclick=e=>{if(e.target===el){close()}});
+  q('#mc',el=>el.onclick=close);
+  q('#ms',el=>el.onclick=()=>{
+    const name=(document.getElementById('fn')||{}).value?.trim();
+    const num=(document.getElementById('fnum')||{}).value?.trim();
+    if(!name) return;
+    state.orders.push({id:uid(),name,num:num||uid(),stage:'planerat',notes:[],ts:Date.now(),upd:Date.now()});
+    save(state.orders);state.modal=null;render();
+  });
+  document.querySelectorAll('.card-next').forEach(b=>b.onclick=e=>{e.stopPropagation();move(b.dataset.id,1)});
+  document.querySelectorAll('.card-prev').forEach(b=>b.onclick=e=>{e.stopPropagation();move(b.dataset.id,-1)});
+  document.querySelectorAll('.card-qr').forEach(b=>b.onclick=e=>{e.stopPropagation();state.modal='qr';state.qrId=b.dataset.id;render()});
+  document.querySelectorAll('.card-del').forEach(b=>b.onclick=e=>{
+    e.stopPropagation();
+    if(confirm('Ta bort order?')){state.orders=state.orders.filter(o=>o.id!==b.dataset.id);save(state.orders);render()}
+  });
+}
+
+function close(){state.modal=null;state.qrId=null;render()}
+
+function move(id,dir){
+  const o=state.orders.find(x=>x.id===id);
+  if(!o) return;
+  const si=STAGES.findIndex(s=>s.id===o.stage);
+  const ni=si+dir;
+  if(ni<0||ni>=STAGES.length) return;
+  o.notes=o.notes||[];
+  o.notes.push({text:`${STAGES[si].label} → ${STAGES[ni].label}`,sys:true,ts:Date.now()});
+  o.stage=STAGES[ni].id;
+  o.upd=Date.now();
+  save(state.orders);
+  render();
+}
+
+// ── ITEM VIEW (QR-scan, mobil) ──────────────────────────
+
+function buildItem(id){
+  const o=state.orders.find(x=>x.id===id);
+  if(!o) return`<div style="text-align:center;padding:3rem 1rem;color:var(--muted)">
+    <p style="font-size:1.1rem;margin-bottom:.5rem">Order hittades inte</p>
+    <p style="font-size:.8rem;margin-bottom:1rem">ID: ${esc(id)}</p>
+    <a href="${esc(location.pathname)}" style="color:var(--accent);font-size:.875rem">← Gå till tavlan</a>
+  </div>`;
+
+  const ci=STAGES.findIndex(s=>s.id===o.stage);
+  const cs=STAGES[ci];
+
+  const tl=STAGES.map((s,i)=>{
+    const done=i<ci, curr=i===ci, last=i===STAGES.length-1;
+    const dot=done?'done':curr?'curr':'';
+    const dotStyle=curr?`style="background:${s.color};border-color:${s.color}"`:'';
+    const lbl=done?'done':curr?'curr':'';
+    return`<div class="tl-row">
+      <div class="tl-track">
+        <div class="tl-dot ${dot}" ${dotStyle}>${done?'✓':i+1}</div>
+        ${!last?`<div class="tl-line ${done?'done':''}"></div>`:''}
+      </div>
+      <div class="tl-lbl ${lbl}">${esc(s.label)}</div>
+    </div>`;
+  }).join('');
+
+  const notes=(o.notes||[]).slice().reverse();
+  const notesHTML=notes.length?notes.map(n=>`
+    <div class="note-item">
+      <div class="note-txt${n.sys?' sys':''}">${esc(n.text)}</div>
+      <div class="note-time">${fmt(n.ts)}</div>
+    </div>`).join(''):'<div style="color:var(--muted);font-size:.8rem">Inga anteckningar ännu.</div>';
+
+  return`<div class="item">
+    <a class="item-back" href="${esc(location.pathname)}">← Till tavlan</a>
+
+    <div class="card-block">
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:.2rem">#${esc(o.num)}</div>
+      <div style="font-size:1.25rem;font-weight:700;margin-bottom:.6rem">${esc(o.name)}</div>
+      <div style="display:inline-flex;align-items:center;gap:.35rem;background:${cs.color}20;border-radius:20px;padding:.2rem .7rem">
+        <span style="width:8px;height:8px;border-radius:50%;background:${cs.color};flex-shrink:0"></span>
+        <span style="font-size:.78rem;font-weight:600;color:${cs.color}">${esc(cs.label)}</span>
+      </div>
+    </div>
+
+    <div class="card-block">
+      <div class="block-lbl">PROGRESS</div>
+      <div class="tl">${tl}</div>
+    </div>
+
+    <div class="card-block">
+      <div class="block-lbl">UPPDATERA STATUS</div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        ${ci>0?`<button class="btn btn-ghost btn-lg" id="mp">← ${esc(STAGES[ci-1].label)}</button>`:''}
+        ${ci<STAGES.length-1
+          ?`<button class="btn btn-primary btn-lg" id="mn">${esc(STAGES[ci+1].label)} →</button>`
+          :'<div style="color:#10b981;font-weight:700;font-size:.9rem">✓ Ordern är klar!</div>'}
+      </div>
+    </div>
+
+    <div class="card-block">
+      <div class="block-lbl">ANTECKNING</div>
+      <div class="field"><textarea id="notein" placeholder="Skriv en notering..." style="min-height:70px;resize:vertical"></textarea></div>
+      <button class="btn btn-ghost" id="savnote">Spara anteckning</button>
+    </div>
+
+    <div class="card-block">
+      <div class="block-lbl">HISTORIK</div>
+      ${notesHTML}
+    </div>
+  </div>`;
+}
+
+function bindItem(id){
+  q('#mn',el=>el.onclick=()=>{move(id,1);render()});
+  q('#mp',el=>el.onclick=()=>{move(id,-1);render()});
+  q('#savnote',el=>el.onclick=()=>{
+    const inp=document.getElementById('notein');
+    const txt=inp?.value?.trim();
+    if(!txt) return;
+    const o=state.orders.find(x=>x.id===id);
+    if(!o) return;
+    o.notes=o.notes||[];
+    o.notes.push({text:txt,sys:false,ts:Date.now()});
+    o.upd=Date.now();
+    save(state.orders);
+    inp.value='';
+    render();
+  });
+}
+
+function q(sel,fn){const el=document.querySelector(sel);if(el)fn(el)}
+
+render();
+</script>
+</body>
+</html>
